@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">CareTaker</string>
+    <string name="title_activity_display">Display</string>
+    <string name="frequency">Select Frequency</string>
+</resources>

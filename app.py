@@ -225,7 +225,7 @@ def medicate(color):
 	conn.request('GET', REMOTE_PATH+'?color={}'.format(color))
 
 
-sample_setup()
+# sample_setup()
 start_process()
 if __name__ == "__main__":
 	app.run()

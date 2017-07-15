@@ -43,16 +43,14 @@ def pill_missed():
 	return log_pill(False)
 
 def log_pill(success):
+	global upcomming_events
 	color = request.args.get('color')
 	if not color:
 		abort(400)
 		return
 
-	while len(upcomming_events) > 0 and upcomming_events[0][0]-getSimTime() < MAX_TAKE_TIME:
+	if len(upcomming_events) > 0 and upcomming_events[0][0]-getSimTime() < MAX_TAKE_TIME:
 		# This is probably referring to the first upcomming event, check it off
-		if upcomming_events[0][0]==0:
-			# Keep "immediate" requests
-			break
 		upcomming_events = upcomming_events[1:]
 
 	event = (getSimTime(), color, success)
@@ -61,10 +59,7 @@ def log_pill(success):
 
 @app.route("/device/next_pill")
 def get_next_pill():
-	global upcomming_events
-	upcomming_events.sort()
-	while upcomming_events and upcomming_events[0][0] < getSimTime() - MAX_TAKE_TIME:
-		upcomming_events = upcomming_events[1:]
+	remove_missed_events()
 
 	if len(upcomming_events) == 0:
 		abort(404)
@@ -75,6 +70,15 @@ def get_next_pill():
 
 	# Events are sent to the device in true time, not simulated time
 	return json.dumps({'time':event[0]-tOffset, 'color':getcolor(name)})
+
+def remove_missed_events():
+	global upcomming_events
+	upcomming_events.sort()
+	while upcomming_events and upcomming_events[0][0] < getSimTime() - MAX_TAKE_TIME:
+		if upcomming_events[0][0] == 0:
+			# This is an "immediate" request
+			break
+		upcomming_events = upcomming_events[1:]
 
 @app.route("/device/all_upcomming")
 def get_all_upcomming():
@@ -91,6 +95,18 @@ def add_medication():
 	name = request.args.get('name')
 	if not name:
 		abort(400)
+
+	if 'color' in request.args:
+		color = request.args.get('color')
+		
+		if color == "":
+			if name in colors:
+				del colors[name]
+			return "[deleted]"
+
+		colors[name]=request.args.get('color')
+
+
 	return getcolor(name)
 
 # getcolor gets a color from the mapping, creating it if it doesn't exist.
@@ -112,17 +128,27 @@ def list_medications():
 	return json.dumps(colors)
 
 @app.route('/api/schedule')
-def schedule():
+def api_schedule():
 	name = request.args.get('name')
 	time = request.args.get('time')
 	if not name or not time:
 		abort(400)
+	return schedule(name, time)
 
+@app.route('/api/take_now')
+def api_take_now():
+	name = request.args.get('name')
+	if not name:
+		abort(400)
+
+	return schedule(name, 0)
+
+def schedule(name, time):
 	event = (float(time), name)
 	upcomming_events.append(event)
 	upcomming_events.sort()
 	print("Event scheduled: " + str(event))
-	return ""
+	return "Event scheduled: " + str(event)
 
 # Misc utilities
 def random_name():

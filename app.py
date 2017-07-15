@@ -1,4 +1,4 @@
-from flask import Flask, request, abort
+from flask import Flask, request, abort, send_from_directory
 from flask_cors import CORS
 
 import time
@@ -21,7 +21,7 @@ log = []
 upcomming_events = []
 
 # names maps names to colors
-colors = dict()
+colors = {"vitamin":"yellow","pill":"white"}
 
 tOffset = 0
 
@@ -157,7 +157,7 @@ def schedule(name, time):
 
 # Misc utilities
 def random_name():
-	return random.choice('pills vitamin'.split())
+	return random.choice('pill vitamin'.split())
 
 def sample_setup():
 	# Build a log
@@ -224,6 +224,9 @@ def medicate(color):
 	conn = http.client.HTTPSConnection(REMOTE_HOST)
 	conn.request('GET', REMOTE_PATH+'?color={}'.format(color))
 
+@app.route('/static/<path:path>')
+def send_static(path):
+    return send_from_directory('static', path)
 
 # sample_setup()
 start_process()

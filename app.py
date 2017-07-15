@@ -58,6 +58,6 @@ def sample_log():
 
 	return l
 
+log = sample_log()
 if __name__ == "__main__":
-	log = sample_log()
 	app.run()

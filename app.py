@@ -144,7 +144,7 @@ def api_schedule():
 def api_take_now():
 	name = request.args.get('name')
 	if not name:
-		abort(400)
+		name = random_name()
 
 	return schedule(name, 0)
 
@@ -157,7 +157,7 @@ def schedule(name, time):
 
 # Misc utilities
 def random_name():
-	return random.choice('hello world'.split())
+	return random.choice('pills vitamin'.split())
 
 def sample_setup():
 	# Build a log
@@ -217,11 +217,11 @@ def handle_dialout():
 			continue
 
 
-REMOTE_HOST = "example.com"
+REMOTE_HOST = "agent.electricimp.com/6UWDXN4lLAOQ"
 REMOTE_PATH = "/medicate"
 
 def medicate(color):
-	conn = http.client.HTTPConnection(REMOTE_HOST)
+	conn = http.client.HTTPSConnection(REMOTE_HOST)
 	conn.request('GET', REMOTE_PATH+'?color={}'.format(color))
 
 

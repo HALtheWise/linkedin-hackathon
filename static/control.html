@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Control panel for whyNOT</title>
+	<script type="text/javascript">
+		function request(url){
+			var xhttp = new XMLHttpRequest();
+			xhttp.open("GET", url, true);
+			xhttp.send();
+		}
+	</script>
+</head>
+<body>
+<button onclick="request('/api/take_now')">Medicate now</button>
+</body>
+</html>

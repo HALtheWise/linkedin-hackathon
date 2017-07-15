@@ -1,18 +1,36 @@
-from flask import Flask, request
+from flask import Flask, request, abort
+from flask_cors import CORS
+
 import time
 import json
 import random
 
-app = Flask(__name__)
+from collections import defaultdict
 
-# Log contains tuples of (simulated event time, color, success)
+app = Flask(__name__)
+CORS(app)
+
+# Storage
+
+# Log contains tuples of (simulated event time, name, success)
 log = []
+
+# upcomming_events contains tuples of (simulated event time, name)
+upcomming_events = []
+
+# names maps names to colors
+colors = defaultdict(lambda:"medication")
 
 tOffset = 0
 
+# Constants
+MAX_TAKE_TIME = 120
+
+# Code
+
 @app.route("/")
 def hello():
-  return "Hello, World at {}".format(time.time())
+  return "Hello, World at {}".format(getSimTime())
 
 
 # Device API's
@@ -25,20 +43,31 @@ def pill_missed():
 	return log_pill(False)
 
 def log_pill(success):
+	while len(upcomming_events) > 0 and upcomming_events[0][0]-getSimTime() < MAX_TAKE_TIME:
+		# This is probably referring to the first upcomming event, check it off
+		if upcomming_events[0][0]==0:
+			# Keep "immediate" requests
+			break
+		upcomming_events = upcomming_events[1:]
+
 	color = request.args.get('color')
-	event = (time.time()+tOffset, color, success)
+	event = (getSimTime(), color, success)
 	log.append(event)
 	return str(event)
 
 @app.route("/device/next_pill")
 def get_next_pill():
-	color = random_color()
-	if random.random() < 0.1:
-		# 10% chance
-		t = 0
-	else:
-		t = time.time() + 120 # 2min in future
-	return json.dumps({'time':t, 'color':color})
+	upcomming_events.sort()
+	while upcomming_events and upcomming_events[0] < getSimTime - MAX_TAKE_TIME:
+		upcomming_events = upcomming_events[1:]
+
+	if len(upcomming_events) == 0:
+		abort(404)
+		return "No events scheduled"
+
+	event = upcomming_events[0]
+	# Events are sent to the device in true time, not simulated time
+	return json.dumps({'time':event[0]-tOffset, 'color':event[1]})
 
 # App API's
 @app.route("/api/log")
@@ -46,18 +75,36 @@ def get_log():
 	log.sort()
 	return str(log)
 
+@app.route('/api/add_medication')
+def add_medication():
+	name = request.args.get('name')
+	if name in colors:
+		return colors[name]
+		
+	colorslist = 'red green blue purple 5 6 7 8'.split()
+	color = colorslist[len(colors)]
+	colors[name] = color
+	return color
+
 # Misc utilities
 def random_color():
 	return random.choice('red green blue'.split())
 
-def sample_log():
-	l = []
+def sample_setup():
+	# Build a log
 	for i in range(10):
-		event = (time.time()-60*60*24*i, random_color(), random.random()<0.8)
-		l.append(event)
+		event = (getSimTime()-60*60*24*i, random_color(), random.random()<0.8)
+		log.append(event)
 
-	return l
+	# Populate sample events
+	for i in range(100):
+		event = (getSimTime()+30*i, random_color())
+		upcomming_events.append(event)
 
-log = sample_log()
+def getSimTime():
+	return time.time() + tOffset
+
+
+sample_setup()
 if __name__ == "__main__":
 	app.run()

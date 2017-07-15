@@ -19,7 +19,7 @@ log = []
 upcomming_events = []
 
 # names maps names to colors
-colors = defaultdict(lambda:"medication")
+colors = dict()
 
 tOffset = 0
 
@@ -85,6 +85,10 @@ def add_medication():
 	color = colorslist[len(colors)]
 	colors[name] = color
 	return color
+
+@app.route('/api/list_medications')
+def list_medications():
+	return json.dumps(colors)
 
 # Misc utilities
 def random_color():

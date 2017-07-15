@@ -56,7 +56,7 @@ def log_pill(success):
 	if 'color' in request.args:
 		color = request.args.get('color')
 	else:
-		color = getcolor(firstUpcomming[1])
+		color = firstUpcomming[1]
 
 	event = (getSimTime(), color, success)
 	log.append(event)

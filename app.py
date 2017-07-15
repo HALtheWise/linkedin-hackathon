@@ -32,7 +32,7 @@ def log_pill(success):
 
 @app.route("/device/next_pill")
 def get_next_pill():
-	color = random.choice('red green blue'.split())
+	color = random_color()
 	if random.random() < 0.1:
 		# 10% chance
 		t = 0
@@ -46,5 +46,18 @@ def get_log():
 	log.sort()
 	return str(log)
 
+# Misc utilities
+def random_color():
+	return random.choice('red green blue'.split())
+
+def sample_log():
+	l = []
+	for i in range(10):
+		event = (time.time()-60*60*24*i, random_color(), random.random()<0.8)
+		l.append(event)
+
+	return l
+
 if __name__ == "__main__":
-  app.run()
+	log = sample_log()
+	app.run()

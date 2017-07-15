@@ -217,8 +217,8 @@ def handle_dialout():
 			continue
 
 
-REMOTE_HOST = "agent.electricimp.com/6UWDXN4lLAOQ"
-REMOTE_PATH = "/medicate"
+REMOTE_HOST = "agent.electricimp.com"
+REMOTE_PATH = "/6UWDXN4lLAOQ/medicate"
 
 def medicate(color):
 	conn = http.client.HTTPSConnection(REMOTE_HOST)

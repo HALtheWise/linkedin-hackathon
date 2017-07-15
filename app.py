@@ -182,30 +182,46 @@ def start_process():
 
 def handle_dialout():
 	last_time = time.time()
+	global upcomming_events
 
 	while True:
+		# print('thinking...' + str(random.random()))
 		time.sleep(0.5)
 		remove_missed_events()
 		if len(upcomming_events) == 0:
 			continue
 
 		event = upcomming_events[0]
-		time = event[0]
+		t = event[0]
 		name = event[1]
 
-		if time > last_time and time < getSimTime():
+		if t==0:
+			print("Medicating immediately for event {}".format(event))
+			color = getcolor(name)
+			startlen = len(log)
+			medicate(color)
+
+			tstart = time.time()
+			while time.time() < tstart + MAX_TAKE_TIME and len(log) == startlen:
+				time.sleep(0.1)
+
+			upcomming_events = upcomming_events[1:]
+			continue
+
+		if t > last_time and t < getSimTime():
 			print("Medicating for event {}".format(event))
 			color = getcolor(name)
 			medicate(color)
 
-			last_time = time
+			last_time = t
+			continue
 
 
 REMOTE_HOST = "example.com"
 REMOTE_PATH = "/medicate"
 
 def medicate(color):
-	conn = http.client.HTTPSConnection(REMOTE_HOST)
+	conn = http.client.HTTPConnection(REMOTE_HOST)
 	conn.request('GET', REMOTE_PATH+'?color={}'.format(color))
 
 

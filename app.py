@@ -4,6 +4,8 @@ from flask_cors import CORS
 import time
 import json
 import random
+import threading
+import http.client
 
 from collections import defaultdict
 
@@ -44,14 +46,17 @@ def pill_missed():
 
 def log_pill(success):
 	global upcomming_events
-	color = request.args.get('color')
-	if not color:
-		abort(400)
-		return
+
+	firstUpcomming = upcomming_events[0]
 
 	if len(upcomming_events) > 0 and upcomming_events[0][0]-getSimTime() < MAX_TAKE_TIME:
 		# This is probably referring to the first upcomming event, check it off
 		upcomming_events = upcomming_events[1:]
+
+	if 'color' in request.args:
+		color = request.args.get('color')
+	else:
+		color = getcolor(firstUpcomming[1])
 
 	event = (getSimTime(), color, success)
 	log.append(event)
@@ -168,7 +173,43 @@ def sample_setup():
 def getSimTime():
 	return time.time() + tOffset
 
+# Dialout
+
+
+def start_process():
+	thread = threading.Thread(target=handle_dialout)
+	thread.start()
+
+def handle_dialout():
+	last_time = time.time()
+
+	while True:
+		time.sleep(0.5)
+		remove_missed_events()
+		if len(upcomming_events) == 0:
+			continue
+
+		event = upcomming_events[0]
+		time = event[0]
+		name = event[1]
+
+		if time > last_time and time < getSimTime():
+			print("Medicating for event {}".format(event))
+			color = getcolor(name)
+			medicate(color)
+
+			last_time = time
+
+
+REMOTE_HOST = "example.com"
+REMOTE_PATH = "/medicate"
+
+def medicate(color):
+	conn = http.client.HTTPSConnection(REMOTE_HOST)
+	conn.request('GET', REMOTE_PATH+'?color={}'.format(color))
+
 
 sample_setup()
+start_process()
 if __name__ == "__main__":
 	app.run()

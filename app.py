@@ -24,7 +24,7 @@ colors = dict()
 tOffset = 0
 
 # Constants
-MAX_TAKE_TIME = 120
+MAX_TAKE_TIME = 20
 
 # Code
 
@@ -43,6 +43,11 @@ def pill_missed():
 	return log_pill(False)
 
 def log_pill(success):
+	color = request.args.get('color')
+	if not color:
+		abort(400)
+		return
+
 	while len(upcomming_events) > 0 and upcomming_events[0][0]-getSimTime() < MAX_TAKE_TIME:
 		# This is probably referring to the first upcomming event, check it off
 		if upcomming_events[0][0]==0:
@@ -50,15 +55,15 @@ def log_pill(success):
 			break
 		upcomming_events = upcomming_events[1:]
 
-	color = request.args.get('color')
 	event = (getSimTime(), color, success)
 	log.append(event)
 	return str(event)
 
 @app.route("/device/next_pill")
 def get_next_pill():
+	global upcomming_events
 	upcomming_events.sort()
-	while upcomming_events and upcomming_events[0] < getSimTime - MAX_TAKE_TIME:
+	while upcomming_events and upcomming_events[0][0] < getSimTime() - MAX_TAKE_TIME:
 		upcomming_events = upcomming_events[1:]
 
 	if len(upcomming_events) == 0:
@@ -66,8 +71,14 @@ def get_next_pill():
 		return "No events scheduled"
 
 	event = upcomming_events[0]
+	name = event[1]
+
 	# Events are sent to the device in true time, not simulated time
-	return json.dumps({'time':event[0]-tOffset, 'color':event[1]})
+	return json.dumps({'time':event[0]-tOffset, 'color':getcolor(name)})
+
+@app.route("/device/all_upcomming")
+def get_all_upcomming():
+	return str(upcomming_events)
 
 # App API's
 @app.route("/api/log")
@@ -78,11 +89,21 @@ def get_log():
 @app.route('/api/add_medication')
 def add_medication():
 	name = request.args.get('name')
+	if not name:
+		abort(400)
+	return getcolor(name)
+
+# getcolor gets a color from the mapping, creating it if it doesn't exist.
+def getcolor(name):
+
 	if name in colors:
 		return colors[name]
 		
-	colorslist = 'red green blue purple 5 6 7 8'.split()
-	color = colorslist[len(colors)]
+	colorslist = 'red green blue'.split()
+	if len(colors) < len(colorslist):
+		color = colorslist[len(colors)]
+	else:
+		color = 'color'+str(len(colors)+1)
 	colors[name] = color
 	return color
 
@@ -90,19 +111,32 @@ def add_medication():
 def list_medications():
 	return json.dumps(colors)
 
+@app.route('/api/schedule')
+def schedule():
+	name = request.args.get('name')
+	time = request.args.get('time')
+	if not name or not time:
+		abort(400)
+
+	event = (float(time), name)
+	upcomming_events.append(event)
+	upcomming_events.sort()
+	print("Event scheduled: " + str(event))
+	return ""
+
 # Misc utilities
-def random_color():
-	return random.choice('red green blue'.split())
+def random_name():
+	return random.choice('hello world'.split())
 
 def sample_setup():
 	# Build a log
 	for i in range(10):
-		event = (getSimTime()-60*60*24*i, random_color(), random.random()<0.8)
+		event = (getSimTime()-60*60*24*i, random_name(), random.random()<0.8)
 		log.append(event)
 
 	# Populate sample events
 	for i in range(100):
-		event = (getSimTime()+30*i, random_color())
+		event = (getSimTime()+30*i, random_name())
 		upcomming_events.append(event)
 
 def getSimTime():
